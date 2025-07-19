@@ -1,0 +1,21 @@
+{
+    "name" : "Reading Time",
+    "description" : "Displays Reading time for Medium Articles",
+    "version" : "1.0",
+    "manifest_version" : 3,
+    "action" : {
+        "default_popup" : "name.html",
+        "default_icon"  : "icon.png"
+    },
+    "content_scripts" : [
+        {
+            "js" : ["scripts/content.js"],
+            "matches" : ["https://medium.com/*"]
+        }
+    ],
+    "background" : {
+        "service_worker" : "background.js"
+    },
+    "permissions": ["activeTab"]
+
+}
