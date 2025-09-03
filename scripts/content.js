@@ -91,10 +91,39 @@ function fetchTimeComments(videoId) {
     })
 }
 
-function fetchAITimestamps(videoId) {
-    return new Promise((resolve) => {
-        chrome.runtime.sendMessage({type: 'fetchAITimestamps', videoId}, resolve)
-    })
+async function fetchAITimestamps(videoId) {
+    console.log('fetchAITimestamps called with videoId:', videoId);
+    try {
+        const url = `http://localhost:8000/timestamps/${videoId}`;
+        console.log('Making direct request to:', url);
+        
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        // Convert backend format to frontend format
+        const aiTimestamps = data.ts.map(timestamp => ({
+            commentId: 'ai-generated',
+            authorAvatar: null,
+            authorName: 'AI Generated',
+            timestamp: formatTime(timestamp.time),
+            time: timestamp.time,
+            text: timestamp.chapter_name
+        }));
+        
+        console.log('Converted timestamps:', aiTimestamps);
+        return aiTimestamps;
+    } catch (error) {
+        console.error('Failed to fetch AI timestamps:', error);
+        return [];
+    }
 }
 
 function addTimeComments(timeComments) {
@@ -196,6 +225,18 @@ function updateTooltipPosition(event) {
         
         tooltip.style.left = `${left}px`
         tooltip.style.top = `${top}px`
+    }
+}
+
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    } else {
+        return `${minutes}:${secs.toString().padStart(2, '0')}`
     }
 }
 
