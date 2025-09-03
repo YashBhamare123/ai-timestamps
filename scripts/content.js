@@ -1,22 +1,74 @@
-main()
+// Don't auto-generate timestamps on page load
+let currentTimestamps = null;
 
 onLocationHrefChange(() => {
     removeBar()
-    main()
+    currentTimestamps = null;
 })
 
-function main() {
-    const videoId = getVideoId()
-    if (!videoId) {
-        return
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Content script received message:', request);
+    
+    if (request.type === 'generateTimestamps') {
+        console.log('Processing generateTimestamps request');
+        generateTimestamps()
+            .then(result => {
+                console.log('generateTimestamps completed with result:', result);
+                sendResponse(result);
+            })
+            .catch(error => {
+                console.error('generateTimestamps failed:', error);
+                sendResponse({ success: false, error: error.message });
+            });
+        return true; // Keep message channel open for async response
     }
-    fetchTimeComments(videoId)
-        .then(timeComments => {
-            if (videoId !== getVideoId()) {
-                return
-            }
-            addTimeComments(timeComments)
-        })
+    
+    if (request.type === 'clearTimestamps') {
+        console.log('Processing clearTimestamps request');
+        clearTimestamps();
+        sendResponse({ success: true });
+    }
+    
+    if (request.type === 'checkTimestamps') {
+        console.log('Processing checkTimestamps request');
+        sendResponse({ hasTimestamps: currentTimestamps !== null });
+    }
+});
+
+// Add a simple test to verify content script is loaded
+console.log('AI YouTube Timestamps content script loaded');
+
+async function generateTimestamps() {
+    console.log('generateTimestamps called');
+    const videoId = getVideoId();
+    console.log('Video ID:', videoId);
+    
+    if (!videoId) {
+        throw new Error('No video ID found. Please make sure you\'re on a YouTube video page.');
+    }
+    
+    try {
+        console.log('Fetching AI timestamps for video:', videoId);
+        const aiTimestamps = await fetchAITimestamps(videoId);
+        console.log('Received AI timestamps:', aiTimestamps);
+        
+        if (aiTimestamps && aiTimestamps.length > 0) {
+            currentTimestamps = aiTimestamps;
+            addTimeComments(aiTimestamps);
+            return { success: true, count: aiTimestamps.length };
+        } else {
+            throw new Error('No timestamps generated. The video might not have a transcript available.');
+        }
+    } catch (error) {
+        console.error('Error generating timestamps:', error);
+        throw error;
+    }
+}
+
+function clearTimestamps() {
+    removeBar();
+    currentTimestamps = null;
 }
 
 function getVideoId() {
@@ -36,6 +88,12 @@ function getVideo() {
 function fetchTimeComments(videoId) {
     return new Promise((resolve) => {
         chrome.runtime.sendMessage({type: 'fetchTimeComments', videoId}, resolve)
+    })
+}
+
+function fetchAITimestamps(videoId) {
+    return new Promise((resolve) => {
+        chrome.runtime.sendMessage({type: 'fetchAITimestamps', videoId}, resolve)
     })
 }
 

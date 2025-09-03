@@ -21,6 +21,7 @@ class Transcript(BaseModel):
 
 
 
+
 def get_transcripts(video_id : str) -> dict:
     ytapi = YouTubeTranscriptApi()
     transcript = ytapi.fetch(video_id= video_id)
@@ -52,12 +53,15 @@ def create_timestamps(transcript : dict) -> Transcript:
 app = FastAPI()
 
 origins = [
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "chrome-extension://*",
+    "moz-extension://*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = origins,
+    allow_origins = ["*"],  # Allow all origins for development
+    allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"]
 )

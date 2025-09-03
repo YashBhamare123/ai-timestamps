@@ -2,3 +2,5 @@
 .qodo
 .content
 name.html
+.*
+backend/__pycache__
